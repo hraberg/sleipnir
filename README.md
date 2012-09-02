@@ -3,7 +3,7 @@
 *Sleipnir is Odin's steed, the child of Loki and Svaðilfari - described as the best of all horses*
 
 This is a potential companion project to [Mímir](https://github.com/hraberg/mimir) - but at its core it's a playground for [OpenCL](http://www.khronos.org/opencl/) and Clojure.
-It uses [JOCL](http://jogamp.org/jocl/www/) (the jogamp version) under the hood.
+It uses [JOCL](http://jogamp.org/jocl/www/) (the jogamp version) under the hood. It's experimental, buggy and wildly incomplete for anything remotely useful. Mount at own risk.
 
 Here's a start at a low level mapping layer:
 
