@@ -45,7 +45,7 @@
                                      (~(symbol (str (s/lower-case t) "-array")) ~size ~ra)))
                        (.rewind bb#)
                        (.putWriteBuffer queue b# false)))]))
-     (.putArg ~kernel ~ra)))
+     (.putArg ~kernel ((resolve (-> ~a meta :tag)) ~ra))))
 
 (defn run-kernel [kernel & real-args]
   (let [{:keys [src name args cl-src]} kernel
