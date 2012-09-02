@@ -2,7 +2,7 @@
   (require [clojure.string :as s]
            [clojure.walk :as w]
            [sleipnir.kernel :as k])
-  (import [com.jogamp.opencl CLDevice CLBuffer CLContext CLKernel CLCommandQueue]
+  (import [com.jogamp.opencl CLDevice CLBuffer CLContext CLKernel CLCommandQueue CLMemory$Mem]
           [com.jogamp.common.nio Buffers]
           [java.nio DoubleBuffer ByteBuffer ByteOrder Buffer]))
 
@@ -20,34 +20,47 @@
 
 (def local-work-size (min (.getMaxWorkGroupSize device) 256))
 
+(defn build [kernel]
+  (.build (.createProgram context kernel)))
+(alter-var-root #'build memoize)
+
 (defn run-kernel [kernel & real-args]
   (let [{:keys [src name args ^String cl-src]} kernel
-        program (.build (.createProgram context cl-src))
+        program (build cl-src)
         ^CLKernel kernel (.createCLKernel program (k/cl-name name))
         read-buffers (atom [])
-        size (round-up local-work-size (apply max (map count (filter sequential? real-args))))]
-    (doseq [[a ra] (partition 2 (interleave args real-args))
-            :let [type (-> a meta :tag)
-                  mode (or (some #{:out} (keys (meta a))) :w)]]
-      (case type
-        'double* (if (= :out mode)
-                   (let [^CLBuffer b (if ra (.createBuffer context ^Buffer ra nil) (.createDoubleBuffer context size nil))]
-                     (swap! read-buffers conj b)
-                     (.putArg kernel b))
-                   (let [^CLBuffer b (.createDoubleBuffer context size nil)
-                         ^DoubleBuffer db (.getBuffer b)]
-                     (.putArg kernel b)
-                     (.put db (double-array size ra))
-                     (.rewind db)
-                     (.putWriteBuffer queue b false)))
-        (.putArg kernel ra)))
-    (.rewind kernel)
-    (.put1DRangeKernel queue kernel 0 size local-work-size)
-    (when (seq @read-buffers)
-      (doseq [b (butlast @read-buffers)]
-        (.putReadBuffer queue b false))
-      (.putReadBuffer queue (last @read-buffers) true))
-    (zipmap (map keyword (filter #(-> % meta :out) args)) (map #(.getBuffer ^CLBuffer %) @read-buffers))))
+        write-buffers (atom [])
+        size (round-up local-work-size  (->> real-args
+                                             (filter (some-fn sequential?
+                                                              #(and % (.isArray (class %)))))
+                                             (map count)
+                                             (apply max)))]
+    (try
+      (doseq [[a ra] (partition 2 (interleave args real-args))]
+        (case (-> a meta :tag)
+          'double* (if ((meta a) :out)
+                     (let [^CLBuffer b (if ra (.createBuffer context ^Buffer ra nil) (.createDoubleBuffer context size
+                                                                                                          (into-array [CLMemory$Mem/READ_ONLY])))]
+                       (swap! read-buffers conj b)
+                       (.putArg kernel b))
+                     (let [^CLBuffer b (.createDoubleBuffer context size
+                                                            (into-array [CLMemory$Mem/WRITE_ONLY]))
+                           ^DoubleBuffer db (.getBuffer b)]
+                       (swap! write-buffers conj b)
+                       (.putArg kernel b)
+                       (.put db (if (.isArray (class ra)) ra (double-array size ra)))
+                       (.rewind db)
+                       (.putWriteBuffer queue b false)))
+          (.putArg kernel ra)))
+      (.put1DRangeKernel queue kernel 0 size local-work-size)
+      (when (seq @read-buffers)
+        (doseq [b (butlast @read-buffers)]
+          (.putReadBuffer queue b false))
+        (.putReadBuffer queue (last @read-buffers) true))
+      (zipmap (map keyword (filter #(-> % meta :out) args)) (map #(.getBuffer ^CLBuffer %) @read-buffers))
+      (finally
+        (.release kernel)
+        (dorun (map #(.release %) (concat @read-buffers @write-buffers)))))))
 
 ;; (defn mapk [kernel]
 ;;   (let [{:keys [name src args]} (meta kernel)
