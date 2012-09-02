@@ -1,5 +1,5 @@
 (ns sleipnir.test.vector-add
-  (use [sleipnir.core :only (defkernel run-kernel buffer-seq)])
+  (use [sleipnir.core :only (defkernel run-kernel buffer-seq device)])
   (import [com.jogamp.common.nio Buffers]))
 
 (def element-count 1444477)
@@ -12,11 +12,14 @@
 (defn -main [& _]
   (let [a (double-array (repeatedly element-count #(rand 100)))
         b (double-array (repeatedly element-count #(rand 100)))]
+
+    (println (str device))
     (time (println (take 10 (buffer-seq
                              (:c (vector-add a b
                                              nil
                                              element-count))))))
 
+    (println "Clojure")
     (time (println (take 10 (loop [i 0
                                    acc (double-array element-count)]
                               (if (= i element-count)

@@ -6,23 +6,23 @@
           [com.jogamp.common.nio Buffers]
           [java.nio DoubleBuffer ByteBuffer ByteOrder Buffer]))
 
-(set! *warn-on-reflection* true)
+;; (set! *warn-on-reflection* true)
 
 (def ^CLContext context (CLContext/create))
 (def ^CLDevice device (.getMaxFlopsDevice context))
 (def ^CLCommandQueue queue (.createCommandQueue device))
 
-(defn round-up [group global]
+(def local-work-size (min (.getMaxWorkGroupSize device) 256))
+
+(defn ^:private round-up [group global]
   (let [r (mod global group)]
     (if (zero? r)
       global
       (+ global (- group r)))))
 
-(def local-work-size (min (.getMaxWorkGroupSize device) 256))
-
-(defn build [^String cl-src]
+(defn ^:private  build-kernel [^String cl-src]
   (.build (.createProgram context cl-src)))
-(alter-var-root #'build memoize)
+(alter-var-root #'build-kernel memoize)
 
 (defmacro ^:private put-arguments [a ra size read-buffers write-buffers ^CLKernel kernel]
   `(case (-> ~a meta :tag)
@@ -49,7 +49,7 @@
 
 (defn run-kernel [kernel & real-args]
   (let [{:keys [src name args cl-src]} kernel
-        ^CLProgram program (build cl-src)
+        ^CLProgram program (build-kernel cl-src)
         ^CLKernel kernel (.createCLKernel program (k/cl-name name))
         read-buffers (atom [])
         write-buffers (atom [])
