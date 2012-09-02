@@ -2,7 +2,7 @@
   (require [clojure.string :as s]
            [clojure.walk :as w]
            [sleipnir.kernel :as k])
-  (import [com.jogamp.opencl CLDevice CLBuffer CLContext CLKernel CLCommandQueue CLMemory$Mem]
+  (import [com.jogamp.opencl CLDevice CLBuffer CLContext CLKernel CLProgram CLResource CLCommandQueue CLMemory$Mem]
           [com.jogamp.common.nio Buffers]
           [java.nio DoubleBuffer ByteBuffer ByteOrder Buffer]))
 
@@ -20,13 +20,13 @@
 
 (def local-work-size (min (.getMaxWorkGroupSize device) 256))
 
-(defn build [kernel]
-  (.build (.createProgram context kernel)))
+(defn build [^String cl-src]
+  (.build (.createProgram context cl-src)))
 (alter-var-root #'build memoize)
 
 (defn run-kernel [kernel & real-args]
-  (let [{:keys [src name args ^String cl-src]} kernel
-        program (build cl-src)
+  (let [{:keys [src name args cl-src]} kernel
+        ^CLProgram program (build cl-src)
         ^CLKernel kernel (.createCLKernel program (k/cl-name name))
         read-buffers (atom [])
         write-buffers (atom [])
@@ -48,7 +48,7 @@
                            ^DoubleBuffer db (.getBuffer b)]
                        (swap! write-buffers conj b)
                        (.putArg kernel b)
-                       (.put db (if (.isArray (class ra)) ra (double-array size ra)))
+                       (.put db (if (.isArray (class ra)) ^"[D" ra (double-array size ra)))
                        (.rewind db)
                        (.putWriteBuffer queue b false)))
           (.putArg kernel ra)))
@@ -60,7 +60,7 @@
       (zipmap (map keyword (filter #(-> % meta :out) args)) (map #(.getBuffer ^CLBuffer %) @read-buffers))
       (finally
         (.release kernel)
-        (dorun (map #(.release %) (concat @read-buffers @write-buffers)))))))
+        (dorun (map #(.release ^CLResource %) (concat @read-buffers @write-buffers)))))))
 
 ;; (defn mapk [kernel]
 ;;   (let [{:keys [name src args]} (meta kernel)
