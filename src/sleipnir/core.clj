@@ -24,6 +24,29 @@
   (.build (.createProgram context cl-src)))
 (alter-var-root #'build memoize)
 
+(defmacro ^:private put-arguments [a ra size read-buffers write-buffers ^CLKernel kernel]
+  `(case (-> ~a meta :tag)
+     ~@(reduce into []
+               (for [t '[Double Byte Long Int Float Short]
+                     :let [bn (symbol (str "java.nio." t "Buffer"))
+                           cb (symbol (str ".create" t "Buffer")) ]]
+                 [(symbol (str (s/lower-case t) "*"))
+                  `(if ((meta ~a) :out)
+                     (let [^CLBuffer b# (if ~ra
+                                          (.createBuffer ^CLContext context ^Buffer ~ra nil)
+                                          (~cb context ~size (into-array [CLMemory$Mem/READ_ONLY])))]
+                       (swap! ~read-buffers conj b#)
+                       (.putArg ~kernel b#))
+                     (let [^CLBuffer b# (~cb context ~size (into-array [CLMemory$Mem/WRITE_ONLY]))
+                           bb# (.getBuffer b#)]
+                       (swap! ~write-buffers conj b#)
+                       (.putArg ~kernel b#)
+                       (.put bb# (if (.isArray (class ~ra)) ~ra
+                                     (~(symbol (str (s/lower-case t) "-array")) ~size ~ra)))
+                       (.rewind bb#)
+                       (.putWriteBuffer queue b# false)))]))
+     (.putArg ~kernel ~ra)))
+
 (defn run-kernel [kernel & real-args]
   (let [{:keys [src name args cl-src]} kernel
         ^CLProgram program (build cl-src)
@@ -37,22 +60,7 @@
                                              (apply max)))]
     (try
       (doseq [[a ra] (partition 2 (interleave args real-args))]
-        (case (-> a meta :tag)
-          'double* (if ((meta a) :out)
-                     (let [^CLBuffer b (if ra
-                                         (.createBuffer context ^Buffer ra nil)
-                                         (.createDoubleBuffer context size
-                                                              (into-array [CLMemory$Mem/READ_ONLY])))]
-                       (swap! read-buffers conj b)
-                       (.putArg kernel b))
-                     (let [^CLBuffer b (.createDoubleBuffer context size (into-array [CLMemory$Mem/WRITE_ONLY]))
-                           ^DoubleBuffer db (.getBuffer b)]
-                       (swap! write-buffers conj b)
-                       (.putArg kernel b)
-                       (.put db (if (.isArray (class ra)) ^"[D" ra (double-array size ra)))
-                       (.rewind db)
-                       (.putWriteBuffer queue b false)))
-          (.putArg kernel ra)))
+        (put-arguments a ra size read-buffers write-buffers kernel))
       (.put1DRangeKernel queue kernel 0 size local-work-size)
       (doseq [b @read-buffers]
         (.putReadBuffer queue b true))
@@ -76,13 +84,16 @@
      (run-kernel (sleipnir.kernel/kernel ~name ~args ~@body)
                  ~@args)))
 
-(eval `(defn buffer-seq [^Buffer ~'b]
-         (condp instance? ~'b
+(defmacro ^:private buffer-seq-switch [^Buffer b]
+  `(condp instance? ~'b
            ~@(reduce into []
-                     (for [t '[Double Byte Long Int]
+                     (for [t '[Double Byte Long Int Float Short]
                            :let [bn (symbol (str "java.nio." t "Buffer"))
                                  b (with-meta 'b {:tag bn})]]
                        [bn
                         `(let [a# (~(symbol (str (s/lower-case t) "-array")) (.limit ~b))]
                            (.get ~b a#)
-                           a#)])))))
+                           a#)]))))
+
+(defn buffer-seq [b]
+  (buffer-seq-switch b))

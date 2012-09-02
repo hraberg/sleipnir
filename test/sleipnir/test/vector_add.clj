@@ -12,7 +12,6 @@
 (defn -main [& _]
   (let [a (double-array (repeatedly element-count #(rand 100)))
         b (double-array (repeatedly element-count #(rand 100)))]
-
     (time (println (take 10 (buffer-seq
                              (:c (vector-add a b
                                              nil
