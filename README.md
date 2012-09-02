@@ -16,7 +16,7 @@ Here's a start at a low level mapping layer:
 
 Which maps to this OpenCL kernel:
 
-```
+```c
 // OpenCL Kernel Function for element by element vector addition
 kernel void VectorAdd(global const double* a, global const double* b, global double* c, int numElements) {
 
