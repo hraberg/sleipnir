@@ -8,29 +8,29 @@ It uses [JOCL](http://jogamp.org/jocl/www/) (the jogamp version) under the hood.
 Here's a start at a low level mapping layer:
 
 ```clojure
-    (defkernel vector-add [^double* a ^double* b ^:out ^double* c ^int num-elements]
-        (let [^int iGID (get-global-id 0)]
-            (when (< iGID num-elements)
-                (aset c iGID (+ (aget a iGID) (aget b iGID))))))
+(defkernel vector-add [^double* a ^double* b ^:out ^double* c ^int num-elements]
+    (let [^int iGID (get-global-id 0)]
+        (when (< iGID num-elements)
+            (aset c iGID (+ (aget a iGID) (aget b iGID))))))
 ```
 
 Which maps to this OpenCL kernel:
 
-```opencl
-    // OpenCL Kernel Function for element by element vector addition
-    kernel void VectorAdd(global const double* a, global const double* b, global double* c, int numElements) {
+```cl
+// OpenCL Kernel Function for element by element vector addition
+kernel void VectorAdd(global const double* a, global const double* b, global double* c, int numElements) {
 
-        // get index into global data array
-        int iGID = get_global_id(0);
+    // get index into global data array
+    int iGID = get_global_id(0);
 
-        // bound check (equivalent to the limit on a 'for' loop for standard/serial C code
-        if (iGID >= numElements)  {
-            return;
-        }
-
-        // add the vector elements
-        c[iGID] = a[iGID] + b[iGID];
+    // bound check (equivalent to the limit on a 'for' loop for standard/serial C code
+    if (iGID >= numElements)  {
+        return;
     }
+
+    // add the vector elements
+    c[iGID] = a[iGID] + b[iGID];
+}
 ```
 
 You can run the [`VectorAdd`](http://jogamp.org/wiki/index.php/JOCL_Tutorial) test by (you need an OpenCL SDK, I've only tested Intel's):
