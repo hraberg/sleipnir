@@ -39,12 +39,13 @@
       (doseq [[a ra] (partition 2 (interleave args real-args))]
         (case (-> a meta :tag)
           'double* (if ((meta a) :out)
-                     (let [^CLBuffer b (if ra (.createBuffer context ^Buffer ra nil) (.createDoubleBuffer context size
-                                                                                                          (into-array [CLMemory$Mem/READ_ONLY])))]
+                     (let [^CLBuffer b (if ra
+                                         (.createBuffer context ^Buffer ra nil)
+                                         (.createDoubleBuffer context size
+                                                              (into-array [CLMemory$Mem/READ_ONLY])))]
                        (swap! read-buffers conj b)
                        (.putArg kernel b))
-                     (let [^CLBuffer b (.createDoubleBuffer context size
-                                                            (into-array [CLMemory$Mem/WRITE_ONLY]))
+                     (let [^CLBuffer b (.createDoubleBuffer context size (into-array [CLMemory$Mem/WRITE_ONLY]))
                            ^DoubleBuffer db (.getBuffer b)]
                        (swap! write-buffers conj b)
                        (.putArg kernel b)
@@ -53,14 +54,12 @@
                        (.putWriteBuffer queue b false)))
           (.putArg kernel ra)))
       (.put1DRangeKernel queue kernel 0 size local-work-size)
-      (when (seq @read-buffers)
-        (doseq [b (butlast @read-buffers)]
-          (.putReadBuffer queue b false))
-        (.putReadBuffer queue (last @read-buffers) true))
-      (zipmap (map keyword (filter #(-> % meta :out) args)) (map #(.getBuffer ^CLBuffer %) @read-buffers))
+      (doseq [b @read-buffers]
+        (.putReadBuffer queue b true))
+      (zipmap (map keyword (filter (comp :out meta) args))
+              (map #(.getBuffer ^CLBuffer %) @read-buffers))
       (finally
-        (.release kernel)
-        (dorun (map #(.release ^CLResource %) (concat @read-buffers @write-buffers)))))))
+        (dorun (map #(.release ^CLResource %) (concat [kernel] @read-buffers @write-buffers)))))))
 
 ;; (defn mapk [kernel]
 ;;   (let [{:keys [name src args]} (meta kernel)

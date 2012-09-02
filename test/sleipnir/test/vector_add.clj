@@ -13,12 +13,15 @@
   (let [a (double-array (repeatedly element-count #(rand 100)))
         b (double-array (repeatedly element-count #(rand 100)))]
 
-    ;; (time (println (take 10 (buffer-seq
-    ;;                          (:c (vector-add a b
-    ;;                                          (Buffers/newDirectDoubleBuffer (int element-count))
-    ;;                                          element-count))))))
-
     (time (println (take 10 (buffer-seq
-                             (:c  (vector-add a b
-                                              nil
-                                              element-count))))))))
+                             (:c (vector-add a b
+                                             nil
+                                             element-count))))))
+
+    (time (println (take 10 (loop [i 0
+                                   acc (double-array element-count)]
+                              (if (= i element-count)
+                                acc
+                                (do
+                                  (aset acc i (+ (aget a i) (aget b i)))
+                                  (recur (inc i) acc)))))))))
