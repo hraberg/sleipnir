@@ -1,7 +1,7 @@
 (ns sleipnir.core
   (require [clojure.string :as s]
            [clojure.walk :as w]
-           [sleipnir.kernel :as cl])
+           [sleipnir.kernel :as k])
   (import [com.jogamp.opencl CLDevice CLBuffer CLContext CLKernel CLCommandQueue]
           [com.jogamp.common.nio Buffers]
           [java.nio DoubleBuffer ByteBuffer ByteOrder Buffer]))
@@ -21,9 +21,9 @@
 (def local-work-size (min (.getMaxWorkGroupSize device) 256))
 
 (defn run-kernel [kernel & real-args]
-  (let [{:keys [src name args]} (meta kernel)
-        program (.build (.createProgram context ^String (kernel)))
-        ^CLKernel kernel (.createCLKernel program (cl/cl-name name))
+  (let [{:keys [src name args ^String cl-src]} kernel
+        program (.build (.createProgram context cl-src))
+        ^CLKernel kernel (.createCLKernel program (k/cl-name name))
         read-buffers (atom [])
         size (round-up local-work-size (apply max (map count (filter sequential? real-args))))]
     (doseq [[a ra] (partition 2 (interleave args real-args))
@@ -52,12 +52,12 @@
 ;; (defn mapk [kernel]
 ;;   (let [{:keys [name src args]} (meta kernel)
 ;;         as-array #(with-meta % {:tag (symbol (str (-> % meta :tag) "*"))})
-;;         body `(cl/let [~(with-meta 'iGID {:tag 'int}) (cl/get-global-id 0)]
-;;                 (cl/when (cl/< ~'iGID ~'num-elements)
-;;                   (cl/aset ~'output ~'iGID (cl/do ~@(w/postwalk-replace (zipmap args (map #(list 'cl/aget % 'iGID) args)) src)))))
+;;         body `(k/let [~(with-meta 'iGID {:tag 'int}) (k/get-global-id 0)]
+;;                 (k/when (k/< ~'iGID ~'num-elements)
+;;                   (k/aset ~'output ~'iGID (k/do ~@(w/postwalk-replace (zipmap args (map #(list 'k/aget % 'iGID) args)) src)))))
 ;;         args (vec (concat (map as-array args) [(as-array (with-meta 'output {:tag (-> args meta :tag :out)}))
 ;;                                 (with-meta 'num-elements {:tag 'int})]))]
-;;     (eval `(cl/kernel ~name ~args ~@body))))
+;;     (eval `(k/kernel ~name ~args ~@body))))
 
 (defmacro defkernel [name args & body]
   `(defn ~name ~(vec (map #(with-meta % {}) args))

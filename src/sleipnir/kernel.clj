@@ -59,18 +59,16 @@
                   (sleipnir.kernel/do ~@body))))))
 
 (defmacro src [name args & body]
-  `(do (str "kernel void " ~(cl-name name) " ("
-            (s/join ", " ~(vec (for [arg args
-                                     :let [t (-> arg meta :tag c/name)]]
-                                 `(str '~(c/when (c/= \* (last t)) "global ") '~t " " '~(cl-name arg)))))
-            ") "
-            ~(c/let [args (vec (interleave args (map #(list 'quote %) args)))]
-               `(c/let ~args
-                  (sleipnir.kernel/do ~@(w/postwalk-replace (zipmap args (map cl-name args)) body)))))))
+  `(str "kernel void " ~(cl-name name) " ("
+        (s/join ", " ~(vec (for [arg args
+                                 :let [t (-> arg meta :tag c/name)]]
+                             `(str '~(c/when (c/= \* (last t)) "global ") '~(c/when-not (-> arg meta :out) "const ") '~t " " '~(cl-name arg)))))
+        ") "
+        ~(c/let [args (vec (interleave args (map #(list 'quote %) args)))]
+           `(c/let ~args
+              (sleipnir.kernel/do ~@(w/postwalk-replace (merge (zipmap args (map cl-name args))
+                                                               (ns-interns 'sleipnir.kernel))
+                                                        body))))))
 
 (defmacro kernel [name args & body]
-  `(with-meta
-     (fn ~name []
-       (binding [*ns* ~(the-ns 'sleipnir.kernel)]
-         (eval `(src ~'~name ~'~args ~'~@body))))
-     {:args '~args :src '~body :name '~name}))
+  `{:args '~args :src '~body :cl-src (src ~name ~args ~@body) :name '~name})
