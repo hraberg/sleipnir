@@ -1,10 +1,7 @@
 (ns sleipnir.kernel
   (require [clojure.core :as c]
-           [clojure.java.io :as io]
            [clojure.string :as s]
            [clojure.walk :as w])
-  (import [com.jogamp.opencl CLDevice CLBuffer CLContext CLMemory CLMemory$Mem CLCommandQueue]
-          [java.nio DoubleBuffer FloatBuffer])
   (:refer-clojure :exclude [+ - / * mod < > <= >= = aget aset when while let]))
 
 (defn cl-name [x]
