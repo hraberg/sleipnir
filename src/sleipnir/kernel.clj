@@ -2,7 +2,7 @@
   (require [clojure.core :as c]
            [clojure.string :as s]
            [clojure.walk :as w])
-  (:refer-clojure :exclude [+ - / * mod < > <= >= = aget aset when while let]))
+  (:refer-clojure :exclude [+ - / * mod < > <= >= = aget aset when while let dec inc]))
 
 (defn cl-name [x]
   (s/replace x "-" "_"))
