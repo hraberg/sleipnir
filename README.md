@@ -44,6 +44,12 @@ The idea of writing the Kernels by hand in Clojure instead of OpenCL isn't the m
 
 [JOCL Demos Reporistory](https://github.com/mbien/jocl-demos) (Bien, 2009)
 
+[Declarative Parallel Programming for GPUs](http://www.osl.iu.edu/publications/prints/2011/2011-parco-holk-harlan.pdf) (Holk, Byrd et al,  2011)
+
+[Efficient Relational Algebra Algorithms and Data Structures for GPU](http://www.cercs.gatech.edu/tech-reports/tr2012/git-cercs-12-01.pdf) (Diamos et al, 2012)
+
+[The Declarative Imperative: Experiences and Conjectures in Distributed Logic](http://db.cs.berkeley.edu/jmh/talks/podskeynote10.pdf) (Hellerstein, 2012)
+
 [Accelerate: An Embedded Language for Accelerated Array Computations](http://www.cse.unsw.edu.au/~chak/project/accelerate/) (Chakravarty et al, 2009)
 
 [cl-gpu: A library for writing GPU (CUDA) kernels in a subset of Common Lisp](https://github.com/angavrilov/cl-gpu) (Gavrilov, 2009)
@@ -51,9 +57,3 @@ The idea of writing the Kernels by hand in Clojure instead of OpenCL isn't the m
 [Rootbeer GPU Compiler](https://github.com/pcpratts/rootbeer1) (Pratt-Szeliga, 2012)
 
 [Aparapi: API for data parallel Java. Allows suitable code to be executed on GPU via OpenCL.](https://code.google.com/p/aparapi/) (Frost et al, 2010)
-
-[Datalog as a Parallel General Purpose Language](http://www.cs.waikato.ac.nz/pubs/wp/2010/uow-cs-wp-2010-06.pdf) (Cleary, Utting and Clayton, 2010)
-
-[Declarative Parallel Programming for GPUs](http://www.osl.iu.edu/publications/prints/2011/2011-parco-holk-harlan.pdf) (Holk, Byrd et al,  2011)
-
-[Efficient Relational Algebra Algorithms and Data Structures for GPU](http://www.cercs.gatech.edu/tech-reports/tr2012/git-cercs-12-01.pdf) (Diamos et al, 2012)
