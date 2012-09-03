@@ -9,9 +9,9 @@ Here's a start at a low level mapping layer:
 
 ```clojure
 (defkernel vector-add [^float* a ^float* b ^:out ^float* c ^int num-elements]
-    (let [^int iGID (get-global-id 0)]
-        (when (< iGID num-elements)
-            (aset c iGID (+ (aget a iGID) (aget b iGID))))))
+  (let [^int iGID (get-global-id 0)]
+    (when (< iGID num-elements)
+      (aset c iGID (+ (aget a iGID) (aget b iGID))))))
 ```
 
 Which maps to this OpenCL kernel:
