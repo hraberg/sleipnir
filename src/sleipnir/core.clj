@@ -8,7 +8,7 @@
 
 ;; (set! *warn-on-reflection* true)
 
-(def ^CLContext context (CLContext/create))
+(defonce ^CLContext context (CLContext/create))
 (def ^CLDevice device (.getMaxFlopsDevice context))
 (def ^CLCommandQueue queue (.createCommandQueue device))
 
@@ -20,9 +20,19 @@
       global
       (+ global (- group r)))))
 
-(defn ^:private  build-kernel [^String cl-src]
-  (.build (.createProgram context cl-src)))
-(alter-var-root #'build-kernel memoize)
+(defmacro ^:private buffer-seq-switch [^Buffer b]
+  `(condp instance? ~'b
+           ~@(reduce into []
+                     (for [t '[Double Byte Long Int Float Short]
+                           :let [bn (symbol (str "java.nio." t "Buffer"))
+                                 b (with-meta 'b {:tag bn})]]
+                       [bn
+                        `(let [a# (~(symbol (str (s/lower-case t) "-array")) (.limit ~b))]
+                           (.get ~b a#)
+                           a#)]))))
+
+(defn buffer-seq [b]
+  (buffer-seq-switch b))
 
 (defmacro ^:private put-arguments [a ra size read-buffers write-buffers ^CLKernel kernel]
   `(case (-> ~a meta :tag)
@@ -32,7 +42,7 @@
                            cb (symbol (str ".create" t "Buffer")) ]]
                  [(symbol (str (s/lower-case t) "*"))
                   `(if ((meta ~a) :out)
-                     (let [^CLBuffer b# (if ~ra
+                     (let [^CLBuffer b# (if (instance? Buffer ~ra)
                                           (.createBuffer ^CLContext context ^Buffer ~ra nil)
                                           (~cb context ~size (into-array [CLMemory$Mem/READ_ONLY])))]
                        (swap! ~read-buffers conj b#)
@@ -46,6 +56,10 @@
                        (.rewind bb#)
                        (.putWriteBuffer queue b# false)))]))
      (.putArg ~kernel ((resolve (-> ~a meta :tag)) ~ra))))
+
+(defn ^:private  build-kernel [^String cl-src]
+  (.build (.createProgram context cl-src)))
+(alter-var-root #'build-kernel memoize)
 
 (defn run-kernel [kernel & real-args]
   (let [{:keys [src name args cl-src]} kernel
@@ -65,9 +79,14 @@
       (doseq [b @read-buffers]
         (.putReadBuffer queue b true))
       (zipmap (map keyword (filter (comp :out meta) args))
-              (map #(.getBuffer ^CLBuffer %) @read-buffers))
+              (map #(buffer-seq (.getBuffer ^CLBuffer %)) @read-buffers))
       (finally
         (dorun (map #(.release ^CLResource %) (concat [kernel] @read-buffers @write-buffers)))))))
+
+(defmacro defkernel [name args & body]
+  `(defn ~name ~(vec (map #(with-meta % {}) args))
+     (run-kernel (sleipnir.kernel/kernel ~name ~args ~@body)
+                 ~@args)))
 
 ;; (defn mapk [kernel]
 ;;   (let [{:keys [name src args]} (meta kernel)
@@ -78,22 +97,3 @@
 ;;         args (vec (concat (map as-array args) [(as-array (with-meta 'output {:tag (-> args meta :tag :out)}))
 ;;                                 (with-meta 'num-elements {:tag 'int})]))]
 ;;     (eval `(k/kernel ~name ~args ~@body))))
-
-(defmacro defkernel [name args & body]
-  `(defn ~name ~(vec (map #(with-meta % {}) args))
-     (run-kernel (sleipnir.kernel/kernel ~name ~args ~@body)
-                 ~@args)))
-
-(defmacro ^:private buffer-seq-switch [^Buffer b]
-  `(condp instance? ~'b
-           ~@(reduce into []
-                     (for [t '[Double Byte Long Int Float Short]
-                           :let [bn (symbol (str "java.nio." t "Buffer"))
-                                 b (with-meta 'b {:tag bn})]]
-                       [bn
-                        `(let [a# (~(symbol (str (s/lower-case t) "-array")) (.limit ~b))]
-                           (.get ~b a#)
-                           a#)]))))
-
-(defn buffer-seq [b]
-  (buffer-seq-switch b))

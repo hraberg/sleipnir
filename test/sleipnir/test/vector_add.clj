@@ -14,10 +14,8 @@
         b (float-array (repeatedly element-count #(rand 100)))]
 
     (println (str device))
-    (time (println (take 10 (buffer-seq
-                             (:c (vector-add a b
-                                             nil
-                                             element-count))))))
+    (time (println (->> (vector-add a b :c element-count)
+                        :c (take 10))))
 
     (println "Clojure")
     (time (println (take 10 (loop [i 0
