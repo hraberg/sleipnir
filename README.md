@@ -50,6 +50,8 @@ The idea of writing the Kernels by hand in Clojure instead of OpenCL isn't the m
 
 [The Declarative Imperative: Experiences and Conjectures in Distributed Logic](http://db.cs.berkeley.edu/jmh/talks/podskeynote10.pdf) (Hellerstein, 2010)
 
+[Mars: A MapReduce Framework on Graphics Processors](http://www.cse.ust.hk/catalac/papers/mars_pact08.pdf) (He et al, 2008)
+
 [Accelerate: An Embedded Language for Accelerated Array Computations](http://www.cse.unsw.edu.au/~chak/project/accelerate/) (Chakravarty et al, 2009)
 
 [cl-gpu: A library for writing GPU (CUDA) kernels in a subset of Common Lisp](https://github.com/angavrilov/cl-gpu) (Gavrilov, 2009)
