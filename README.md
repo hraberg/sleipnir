@@ -48,7 +48,7 @@ The idea of writing the Kernels by hand in Clojure instead of OpenCL isn't the m
 
 [Efficient Relational Algebra Algorithms and Data Structures for GPU](http://www.cercs.gatech.edu/tech-reports/tr2012/git-cercs-12-01.pdf) (Diamos et al, 2012)
 
-[The Declarative Imperative: Experiences and Conjectures in Distributed Logic](http://db.cs.berkeley.edu/jmh/talks/podskeynote10.pdf) (Hellerstein, 2012)
+[The Declarative Imperative: Experiences and Conjectures in Distributed Logic](http://db.cs.berkeley.edu/jmh/talks/podskeynote10.pdf) (Hellerstein, 2010)
 
 [Accelerate: An Embedded Language for Accelerated Array Computations](http://www.cse.unsw.edu.au/~chak/project/accelerate/) (Chakravarty et al, 2009)
 
