@@ -27,10 +27,16 @@
 (doseq [op '[+ - / * mod < > <= >= =]]
   (eval `(defn ~op [~'& ~'xs] (op (get renamed-ops '~op '~op) ~'xs))))
 
+(defn return [] "return")
+
+(defn inc [x]
+  (str x "++"))
+
+(defn dec [x]
+  (str x "--"))
+
 (defn aget [a idx]
   (str a [idx]))
-
-(defn return [] "return")
 
 (defn aset [a idx val]
   (str a [idx] " = " val))
