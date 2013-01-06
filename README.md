@@ -59,3 +59,5 @@ The idea of writing the Kernels by hand in Clojure instead of OpenCL isn't the m
 [Rootbeer GPU Compiler](https://github.com/pcpratts/rootbeer1) (Pratt-Szeliga, 2012)
 
 [Aparapi: API for data parallel Java. Allows suitable code to be executed on GPU via OpenCL.](https://code.google.com/p/aparapi/) (Frost et al, 2010)
+
+[simplecl: Clojure wrapper & highlevel processing pipeline ops for JOCL/OpenCL](https://bitbucket.org/postspectacular/simplecl) (Schmidt, 2012)
